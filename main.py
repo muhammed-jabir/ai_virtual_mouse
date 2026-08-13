@@ -1,5 +1,6 @@
 import cv2
 import math
+import time
 
 from config import (
     CAMERA_INDEX,
@@ -12,6 +13,7 @@ from config import (
     CURSOR_SMOOTHING,
     PINCH_THRESHOLD,
     PINCH_RELEASE_THRESHOLD,
+    RIGHT_CLICK_COOLDOWN,
 )
 
 from hand_tracking.hand_detector import HandDetector
@@ -30,7 +32,7 @@ def map_value(value, input_min, input_max, output_min, output_max):
 
 
 def calculate_distance(x1, y1, x2, y2):
-    """Calculate distance between two points."""
+    """Calculate Euclidean distance between two points."""
 
     return math.sqrt(
         (x2 - x1) ** 2
@@ -38,11 +40,25 @@ def calculate_distance(x1, y1, x2, y2):
     )
 
 
+def is_finger_extended(hand_landmarks, tip_id, pip_id):
+    """
+    Check whether a finger is extended.
+
+    For index, middle, ring and pinky,
+    the fingertip should be above the PIP joint.
+    """
+
+    tip = hand_landmarks.landmark[tip_id]
+    pip = hand_landmarks.landmark[pip_id]
+
+    return tip.y < pip.y
+
+
 def main():
 
-    # --------------------------------
-    # Webcam
-    # --------------------------------
+    # ==========================================
+    # WEBCAM
+    # ==========================================
 
     cap = cv2.VideoCapture(CAMERA_INDEX)
 
@@ -62,9 +78,9 @@ def main():
 
         return
 
-    # --------------------------------
-    # Hand detector
-    # --------------------------------
+    # ==========================================
+    # HAND DETECTOR
+    # ==========================================
 
     detector = HandDetector(
         max_hands=MAX_HANDS,
@@ -72,33 +88,45 @@ def main():
         tracking_confidence=TRACKING_CONFIDENCE,
     )
 
-    # --------------------------------
-    # Mouse controller
-    # --------------------------------
+    # ==========================================
+    # MOUSE CONTROLLER
+    # ==========================================
 
     mouse = MouseController(
         smoothing=CURSOR_SMOOTHING
     )
 
-    screen_width, screen_height = mouse.get_screen_size()
+    screen_width, screen_height = (
+        mouse.get_screen_size()
+    )
 
-    # --------------------------------
-    # Pinch state
-    # --------------------------------
+    # ==========================================
+    # GESTURE STATES
+    # ==========================================
 
+    # Left click state
     pinch_active = False
 
-    print("AI Virtual Mouse started.")
+    # Right click state
+    right_click_active = False
 
-    print("Index finger → Cursor")
+    # Last right click timestamp
+    last_right_click_time = 0
 
-    print("Thumb + Index pinch → Left Click")
+    print()
+    print("====================================")
+    print("       AI VIRTUAL MOUSE")
+    print("====================================")
+    print("Index finger        -> Cursor")
+    print("Thumb + Index pinch -> Left Click")
+    print("Index + Middle      -> Right Click")
+    print("ESC                 -> Exit")
+    print("====================================")
+    print()
 
-    print("Press ESC to exit.")
-
-    # --------------------------------
-    # Main loop
-    # --------------------------------
+    # ==========================================
+    # MAIN LOOP
+    # ==========================================
 
     while True:
 
@@ -112,18 +140,21 @@ def main():
 
             break
 
-        # Mirror camera
+        # ======================================
+        # MIRROR CAMERA
+        # ======================================
+
         frame = cv2.flip(frame, 1)
 
-        # --------------------------------
-        # Detect hand
-        # --------------------------------
+        # ======================================
+        # HAND DETECTION
+        # ======================================
 
         frame, results = detector.find_hands(frame)
 
-        # --------------------------------
-        # Hand detected
-        # --------------------------------
+        # ======================================
+        # HAND DETECTED
+        # ======================================
 
         if results.multi_hand_landmarks:
 
@@ -135,10 +166,10 @@ def main():
                 frame.shape
             )
 
-            # --------------------------------
+            # ==================================
             # INDEX FINGER
             # Landmark 8
-            # --------------------------------
+            # ==================================
 
             index_tip = (
                 hand_landmarks.landmark[8]
@@ -152,10 +183,10 @@ def main():
                 index_tip.y * frame_height
             )
 
-            # --------------------------------
+            # ==================================
             # THUMB
             # Landmark 4
-            # --------------------------------
+            # ==================================
 
             thumb_tip = (
                 hand_landmarks.landmark[4]
@@ -169,9 +200,9 @@ def main():
                 thumb_tip.y * frame_height
             )
 
-            # --------------------------------
-            # Draw index
-            # --------------------------------
+            # ==================================
+            # DRAW INDEX FINGER
+            # ==================================
 
             cv2.circle(
                 frame,
@@ -181,9 +212,9 @@ def main():
                 cv2.FILLED,
             )
 
-            # --------------------------------
-            # Draw thumb
-            # --------------------------------
+            # ==================================
+            # DRAW THUMB
+            # ==================================
 
             cv2.circle(
                 frame,
@@ -193,9 +224,9 @@ def main():
                 cv2.FILLED,
             )
 
-            # --------------------------------
-            # Calculate pinch distance
-            # --------------------------------
+            # ==================================
+            # PINCH DISTANCE
+            # ==================================
 
             pinch_distance = calculate_distance(
                 thumb_x,
@@ -204,9 +235,9 @@ def main():
                 index_y,
             )
 
-            # --------------------------------
-            # Draw line between fingers
-            # --------------------------------
+            # ==================================
+            # DRAW PINCH LINE
+            # ==================================
 
             cv2.line(
                 frame,
@@ -216,9 +247,9 @@ def main():
                 2,
             )
 
-            # --------------------------------
-            # Cursor interaction area
-            # --------------------------------
+            # ==================================
+            # INTERACTION AREA
+            # ==================================
 
             cv2.rectangle(
                 frame,
@@ -231,7 +262,10 @@ def main():
                 2,
             )
 
-            # Keep index inside area
+            # ==================================
+            # KEEP INDEX INSIDE AREA
+            # ==================================
+
             index_x = max(
                 FRAME_MARGIN,
                 min(
@@ -248,9 +282,9 @@ def main():
                 ),
             )
 
-            # --------------------------------
-            # Map to screen
-            # --------------------------------
+            # ==================================
+            # MAP CAMERA → SCREEN
+            # ==================================
 
             screen_x = map_value(
                 index_x,
@@ -268,25 +302,21 @@ def main():
                 screen_height,
             )
 
-            # --------------------------------
-            # Move cursor
-            # --------------------------------
+            # ==================================
+            # MOVE CURSOR
+            # ==================================
 
             mouse.move(
                 screen_x,
                 screen_y
             )
 
-            # --------------------------------
-            # PINCH DETECTION
-            # --------------------------------
+            # ==================================
+            # LEFT CLICK - PINCH
+            # ==================================
 
-            if (
-                pinch_distance
-                < PINCH_THRESHOLD
-            ):
+            if pinch_distance < PINCH_THRESHOLD:
 
-                # Only click once
                 if not pinch_active:
 
                     mouse.left_click()
@@ -295,9 +325,9 @@ def main():
 
                     print("LEFT CLICK")
 
-            # --------------------------------
+            # ==================================
             # PINCH RELEASE
-            # --------------------------------
+            # ==================================
 
             elif (
                 pinch_distance
@@ -306,9 +336,86 @@ def main():
 
                 pinch_active = False
 
-            # --------------------------------
-            # UI STATUS
-            # --------------------------------
+            # ==================================
+            # FINGER DETECTION
+            # ==================================
+
+            index_extended = is_finger_extended(
+                hand_landmarks,
+                8,
+                6,
+            )
+
+            middle_extended = is_finger_extended(
+                hand_landmarks,
+                12,
+                10,
+            )
+
+            ring_extended = is_finger_extended(
+                hand_landmarks,
+                16,
+                14,
+            )
+
+            pinky_extended = is_finger_extended(
+                hand_landmarks,
+                20,
+                18,
+            )
+
+            # ==================================
+            # RIGHT CLICK GESTURE
+            #
+            # Index   = Extended
+            # Middle  = Extended
+            # Ring    = Folded
+            # Pinky   = Folded
+            # Pinch   = Not active
+            # ==================================
+
+            right_click_gesture = (
+                index_extended
+                and middle_extended
+                and not ring_extended
+                and not pinky_extended
+                and pinch_distance
+                > PINCH_RELEASE_THRESHOLD
+            )
+
+            # ==================================
+            # RIGHT CLICK COOLDOWN
+            # ==================================
+
+            current_time = time.time()
+
+            if right_click_gesture:
+
+                if not right_click_active:
+
+                    if (
+                        current_time
+                        - last_right_click_time
+                        > RIGHT_CLICK_COOLDOWN
+                    ):
+
+                        mouse.right_click()
+
+                        last_right_click_time = (
+                            current_time
+                        )
+
+                        right_click_active = True
+
+                        print("RIGHT CLICK")
+
+            else:
+
+                right_click_active = False
+
+            # ==================================
+            # STATUS
+            # ==================================
 
             cv2.putText(
                 frame,
@@ -320,6 +427,10 @@ def main():
                 2,
             )
 
+            # ==================================
+            # PINCH DISTANCE
+            # ==================================
+
             cv2.putText(
                 frame,
                 f"Pinch Distance: {int(pinch_distance)}",
@@ -329,6 +440,10 @@ def main():
                 (255, 255, 255),
                 2,
             )
+
+            # ==================================
+            # LEFT CLICK STATUS
+            # ==================================
 
             if pinch_active:
 
@@ -342,12 +457,43 @@ def main():
                     2,
                 )
 
+            # ==================================
+            # RIGHT CLICK STATUS
+            # ==================================
+
+            elif right_click_active:
+
+                cv2.putText(
+                    frame,
+                    "RIGHT CLICK",
+                    (20, 235),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9,
+                    (0, 255, 255),
+                    2,
+                )
+
+            else:
+
+                cv2.putText(
+                    frame,
+                    "GESTURE: MOVE",
+                    (20, 195),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (255, 255, 255),
+                    2,
+                )
+
+        # ======================================
+        # NO HAND DETECTED
+        # ======================================
+
         else:
 
-            # If hand disappears,
-            # reset pinch state.
-
+            # Reset gesture states
             pinch_active = False
+            right_click_active = False
 
             cv2.putText(
                 frame,
@@ -359,9 +505,19 @@ def main():
                 2,
             )
 
-        # --------------------------------
-        # Title
-        # --------------------------------
+            cv2.putText(
+                frame,
+                "GESTURE: NONE",
+                (20, 160),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2,
+            )
+
+        # ======================================
+        # TITLE
+        # ======================================
 
         cv2.putText(
             frame,
@@ -373,23 +529,26 @@ def main():
             2,
         )
 
-        # --------------------------------
-        # Display
-        # --------------------------------
+        # ======================================
+        # DISPLAY
+        # ======================================
 
         cv2.imshow(
             "AI Virtual Mouse",
             frame
         )
 
-        # ESC
+        # ======================================
+        # ESC TO EXIT
+        # ======================================
+
         if cv2.waitKey(1) & 0xFF == 27:
 
             break
 
-    # --------------------------------
-    # Cleanup
-    # --------------------------------
+    # ==========================================
+    # CLEANUP
+    # ==========================================
 
     cap.release()
 

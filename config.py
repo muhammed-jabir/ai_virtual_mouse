@@ -15,3 +15,6 @@ CURSOR_SMOOTHING = 5
 # Left click settings
 PINCH_THRESHOLD = 35
 PINCH_RELEASE_THRESHOLD = 50
+
+# Right click settings
+RIGHT_CLICK_COOLDOWN = 0.8

@@ -36,6 +36,10 @@ class MouseController:
 
         pyautogui.click()
 
+    def right_click(self):
+
+        pyautogui.rightClick()
+
     def get_screen_size(self):
 
         return self.screen_width, self.screen_height
