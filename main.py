@@ -11,6 +11,7 @@ from config import (
     MAX_HANDS,
     FRAME_MARGIN,
     CURSOR_SMOOTHING,
+    CURSOR_DEAD_ZONE,
     PINCH_THRESHOLD,
     PINCH_RELEASE_THRESHOLD,
     RIGHT_CLICK_COOLDOWN,
@@ -93,7 +94,8 @@ def main():
     # ==========================================
 
     mouse = MouseController(
-        smoothing=CURSOR_SMOOTHING
+        smoothing=CURSOR_SMOOTHING,
+        dead_zone=CURSOR_DEAD_ZONE
     )
 
     screen_width, screen_height = (
@@ -104,23 +106,34 @@ def main():
     # GESTURE STATES
     # ==========================================
 
-    # Left click state
+    # Left click
     pinch_active = False
 
-    # Right click state
+    # Right click
     right_click_active = False
 
-    # Last right click timestamp
+    # Last right click time
     last_right_click_time = 0
+
+    # ==========================================
+    # START MESSAGE
+    # ==========================================
 
     print()
     print("====================================")
-    print("       AI VIRTUAL MOUSE")
+    print("          AI VIRTUAL MOUSE")
     print("====================================")
+    print()
     print("Index finger        -> Cursor")
     print("Thumb + Index pinch -> Left Click")
     print("Index + Middle      -> Right Click")
-    print("ESC                 -> Exit")
+    print()
+    print("Cursor smoothing    -> ENABLED")
+    print(
+        f"Dead zone           -> {CURSOR_DEAD_ZONE}"
+    )
+    print()
+    print("Press ESC to exit.")
     print("====================================")
     print()
 
@@ -201,7 +214,7 @@ def main():
             )
 
             # ==================================
-            # DRAW INDEX FINGER
+            # DRAW INDEX
             # ==================================
 
             cv2.circle(
@@ -236,7 +249,7 @@ def main():
             )
 
             # ==================================
-            # DRAW PINCH LINE
+            # PINCH LINE
             # ==================================
 
             cv2.line(
@@ -263,7 +276,7 @@ def main():
             )
 
             # ==================================
-            # KEEP INDEX INSIDE AREA
+            # LIMIT INDEX POSITION
             # ==================================
 
             index_x = max(
@@ -283,7 +296,7 @@ def main():
             )
 
             # ==================================
-            # MAP CAMERA → SCREEN
+            # CAMERA → SCREEN MAPPING
             # ==================================
 
             screen_x = map_value(
@@ -304,6 +317,9 @@ def main():
 
             # ==================================
             # MOVE CURSOR
+            #
+            # Smoothing + dead zone are handled
+            # inside MouseController.
             # ==================================
 
             mouse.move(
@@ -312,7 +328,8 @@ def main():
             )
 
             # ==================================
-            # LEFT CLICK - PINCH
+            # LEFT CLICK
+            # Thumb + Index pinch
             # ==================================
 
             if pinch_distance < PINCH_THRESHOLD:
@@ -384,7 +401,7 @@ def main():
             )
 
             # ==================================
-            # RIGHT CLICK COOLDOWN
+            # RIGHT CLICK
             # ==================================
 
             current_time = time.time()
@@ -473,6 +490,10 @@ def main():
                     2,
                 )
 
+            # ==================================
+            # NORMAL MOVEMENT
+            # ==================================
+
             else:
 
                 cv2.putText(
@@ -485,13 +506,27 @@ def main():
                     2,
                 )
 
+            # ==================================
+            # STABILIZATION STATUS
+            # ==================================
+
+            cv2.putText(
+                frame,
+                "STABILIZATION: ON",
+                (20, 270),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (255, 255, 255),
+                2,
+            )
+
         # ======================================
         # NO HAND DETECTED
         # ======================================
 
         else:
 
-            # Reset gesture states
+            # Reset states
             pinch_active = False
             right_click_active = False
 
@@ -511,6 +546,16 @@ def main():
                 (20, 160),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
+                (255, 255, 255),
+                2,
+            )
+
+            cv2.putText(
+                frame,
+                "STABILIZATION: ON",
+                (20, 200),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
                 (255, 255, 255),
                 2,
             )

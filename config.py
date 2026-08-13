@@ -11,6 +11,7 @@ MAX_HANDS = 1
 # Cursor settings
 FRAME_MARGIN = 100
 CURSOR_SMOOTHING = 5
+CURSOR_DEAD_ZONE = 3
 
 # Left click settings
 PINCH_THRESHOLD = 35
