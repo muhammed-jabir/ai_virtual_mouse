@@ -25,3 +25,24 @@ SCROLL_THRESHOLD = 12
 SCROLL_SPEED = 3
 
 DOUBLE_CLICK_INTERVAL = 0.45
+
+
+# ==========================================
+# HYBRID EYE + HAND CONTROL
+# ==========================================
+
+HYBRID_MODE = False
+
+EYE_CURSOR_ENABLED = False
+
+EYE_SENSITIVITY = 1.5
+
+EYE_SMOOTHING = 8
+
+EYE_DEAD_ZONE = 5
+
+# Keyboard controls
+
+HYBRID_TOGGLE_KEY = "f6"
+EYE_TOGGLE_KEY = "f7"
+HAND_TOGGLE_KEY = "f8"
