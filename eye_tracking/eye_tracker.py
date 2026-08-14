@@ -272,11 +272,19 @@ class EyeTracker:
     # CALCULATE GAZE
     # ==============================================
 
+        # ==============================================
+    # CALCULATE GAZE
+    # ==============================================
+
     def get_gaze_direction(
         self,
         frame,
         face_landmarks
     ):
+
+        # ==========================================
+        # IRIS CENTERS
+        # ==========================================
 
         (
             left_iris,
@@ -286,92 +294,122 @@ class EyeTracker:
             face_landmarks
         )
 
-        (
-            left_eye,
-            right_eye
-        ) = self.get_eye_boundaries(
+        # ==========================================
+        # LEFT EYE CORNERS
+        # ==========================================
+
+        left_corner = self.get_point(
             frame,
-            face_landmarks
+            face_landmarks,
+            33
+        )
+
+        left_inner = self.get_point(
+            frame,
+            face_landmarks,
+            133
+        )
+
+        # ==========================================
+        # RIGHT EYE CORNERS
+        # ==========================================
+
+        right_corner = self.get_point(
+            frame,
+            face_landmarks,
+            362
+        )
+
+        right_inner = self.get_point(
+            frame,
+            face_landmarks,
+            263
         )
 
         # ==========================================
         # LEFT EYE RATIO
         # ==========================================
 
-        left_x_min = min(
-            left_eye[0][0],
-            left_eye[1][0]
+        left_min = min(
+            left_corner[0],
+            left_inner[0]
         )
 
-        left_x_max = max(
-            left_eye[0][0],
-            left_eye[1][0]
+        left_max = max(
+            left_corner[0],
+            left_inner[0]
         )
 
-        left_range = (
-            left_x_max
-            - left_x_min
+        left_width = (
+            left_max - left_min
         )
 
-        if left_range == 0:
+        if left_width > 0:
 
-            left_ratio = 0.5
+            left_ratio = (
+                left_iris[0] - left_min
+            ) / left_width
 
         else:
 
-            left_ratio = (
-                left_iris[0]
-                - left_x_min
-            ) / left_range
+            left_ratio = 0.5
 
         # ==========================================
         # RIGHT EYE RATIO
         # ==========================================
 
-        right_x_min = min(
-            right_eye[0][0],
-            right_eye[1][0]
+        right_min = min(
+            right_corner[0],
+            right_inner[0]
         )
 
-        right_x_max = max(
-            right_eye[0][0],
-            right_eye[1][0]
+        right_max = max(
+            right_corner[0],
+            right_inner[0]
         )
 
-        right_range = (
-            right_x_max
-            - right_x_min
+        right_width = (
+            right_max - right_min
         )
 
-        if right_range == 0:
+        if right_width > 0:
 
-            right_ratio = 0.5
+            right_ratio = (
+                right_iris[0] - right_min
+            ) / right_width
 
         else:
 
-            right_ratio = (
-                right_iris[0]
-                - right_x_min
-            ) / right_range
+            right_ratio = 0.5
 
         # ==========================================
-        # AVERAGE
+        # AVERAGE BOTH EYES
         # ==========================================
 
         gaze_ratio = (
-            left_ratio
-            + right_ratio
+            left_ratio +
+            right_ratio
         ) / 2
 
         # ==========================================
-        # CLASSIFY GAZE
+        # DEBUG
         # ==========================================
 
-        if gaze_ratio < 0.40:
+        print(
+            f"Left: {left_ratio:.2f} | "
+            f"Right: {right_ratio:.2f} | "
+            f"Average: {gaze_ratio:.2f}"
+        )
+
+        # ==========================================
+        # GAZE CLASSIFICATION
+        # ==========================================
+
+        if gaze_ratio < 0.42:
 
             direction = "LEFT"
 
-        elif gaze_ratio > 0.60:
+        elif gaze_ratio > 0.58:
 
             direction = "RIGHT"
 
@@ -384,4 +422,79 @@ class EyeTracker:
             gaze_ratio,
             left_iris,
             right_iris
+        )
+        
+        # ==============================================
+    # GET GAZE POSITION
+    # ==============================================
+
+    def get_gaze_position(
+        self,
+        frame,
+        face_landmarks
+    ):
+
+        (
+            direction,
+            gaze_ratio,
+            left_iris,
+            right_iris
+        ) = self.get_gaze_direction(
+            frame,
+            face_landmarks
+        )
+
+        # ==========================================
+        # NORMALIZE GAZE
+        # ==========================================
+        #
+        # Based on your webcam results:
+        #
+        # approximately:
+        # LEFT  = 0.42
+        # CENTER = 0.47
+        # RIGHT = 0.50
+        #
+        # We expand this range.
+        #
+
+        min_ratio = 0.40
+        max_ratio = 0.55
+
+        gaze_x = (
+            gaze_ratio - min_ratio
+        ) / (
+            max_ratio - min_ratio
+        )
+
+        # Keep between 0 and 1
+
+        gaze_x = max(
+            0.0,
+            min(
+                1.0,
+                gaze_x
+            )
+        )
+
+        # ==========================================
+        # VERTICAL GAZE
+        # ==========================================
+
+        left_y = left_iris[1]
+        right_y = right_iris[1]
+
+        gaze_y = (
+            left_y + right_y
+        ) / 2
+
+        # ==========================================
+        # Return
+        # ==========================================
+
+        return (
+            gaze_x,
+            gaze_y,
+            direction,
+            gaze_ratio
         )
