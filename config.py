@@ -19,3 +19,7 @@ PINCH_RELEASE_THRESHOLD = 50
 
 # Right click settings
 RIGHT_CLICK_COOLDOWN = 0.8
+
+# Scrolling settings
+SCROLL_THRESHOLD = 12
+SCROLL_SPEED = 3
