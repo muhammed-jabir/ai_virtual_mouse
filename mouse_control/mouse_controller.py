@@ -9,38 +9,41 @@ class MouseController:
         dead_zone=3
     ):
 
-        # ==========================================
+        # ==================================================
         # SCREEN INFORMATION
-        # ==========================================
+        # ==================================================
 
         self.screen_width, self.screen_height = (
             pyautogui.size()
         )
 
-        # ==========================================
+        # ==================================================
         # CURSOR SETTINGS
-        # ==========================================
+        # ==================================================
 
         self.smoothing = smoothing
+
         self.dead_zone = dead_zone
 
         # Previous cursor position
+
         self.previous_x = None
+
         self.previous_y = None
 
-    # ==============================================
+    # ======================================================
     # CURSOR MOVEMENT
-    # ==============================================
+    # ======================================================
 
     def move(self, x, y):
         """
-        Move the Windows cursor using
-        smoothing and dead-zone filtering.
+        Move cursor with smoothing
+        and dead-zone stabilization.
         """
 
-        # ------------------------------------------
+        # --------------------------------------------------
         # First movement
-        # ------------------------------------------
+        # --------------------------------------------------
 
         if (
             self.previous_x is None
@@ -48,6 +51,7 @@ class MouseController:
         ):
 
             self.previous_x = x
+
             self.previous_y = y
 
             pyautogui.moveTo(
@@ -57,18 +61,21 @@ class MouseController:
 
             return
 
-        # ------------------------------------------
+        # --------------------------------------------------
         # Calculate movement
-        # ------------------------------------------
+        # --------------------------------------------------
 
-        delta_x = x - self.previous_x
-        delta_y = y - self.previous_y
+        delta_x = (
+            x - self.previous_x
+        )
 
-        # ------------------------------------------
+        delta_y = (
+            y - self.previous_y
+        )
+
+        # --------------------------------------------------
         # Dead zone
-        # ------------------------------------------
-        # Ignore very small movements caused
-        # by MediaPipe tracking jitter.
+        # --------------------------------------------------
 
         if (
             abs(delta_x) < self.dead_zone
@@ -77,9 +84,9 @@ class MouseController:
 
             return
 
-        # ------------------------------------------
+        # --------------------------------------------------
         # Smooth movement
-        # ------------------------------------------
+        # --------------------------------------------------
 
         smooth_x = (
             self.previous_x
@@ -91,71 +98,83 @@ class MouseController:
             + delta_y / self.smoothing
         )
 
-        # ------------------------------------------
-        # Move actual Windows cursor
-        # ------------------------------------------
+        # --------------------------------------------------
+        # Move cursor
+        # --------------------------------------------------
 
         pyautogui.moveTo(
             int(smooth_x),
             int(smooth_y)
         )
 
-        # ------------------------------------------
+        # --------------------------------------------------
         # Save position
-        # ------------------------------------------
+        # --------------------------------------------------
 
         self.previous_x = smooth_x
+
         self.previous_y = smooth_y
 
-    # ==============================================
+    # ======================================================
     # LEFT CLICK
-    # ==============================================
+    # ======================================================
 
     def left_click(self):
         """
-        Perform one left mouse click.
+        Perform a single left click.
         """
 
         pyautogui.click()
 
-    # ==============================================
+    # ======================================================
+    # DOUBLE CLICK
+    # ======================================================
+
+    def double_click(self):
+        """
+        Perform a double left click.
+        """
+
+        pyautogui.doubleClick(
+            interval=0.1
+        )
+
+    # ======================================================
     # RIGHT CLICK
-    # ==============================================
+    # ======================================================
 
     def right_click(self):
         """
-        Perform one right mouse click.
+        Perform a right click.
         """
 
         pyautogui.rightClick()
 
-    # ==============================================
+    # ======================================================
     # SCROLL
-    # ==============================================
+    # ======================================================
 
     def scroll(self, amount):
         """
         Scroll vertically.
 
-        Positive value  -> Scroll UP
-        Negative value  -> Scroll DOWN
+        Positive = UP
+        Negative = DOWN
         """
 
         if amount == 0:
+
             return
 
         pyautogui.scroll(
             int(amount)
         )
 
-    # ==============================================
+    # ======================================================
     # SCREEN SIZE
-    # ==============================================
+    # ======================================================
 
     def get_screen_size(self):
-        """
-        Return screen width and height.
-        """
 
         return (
             self.screen_width,
