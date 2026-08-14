@@ -1,4 +1,3 @@
-
 import cv2
 
 from eye_tracking.eye_tracker import EyeTracker
@@ -32,28 +31,21 @@ def main():
 
     print()
     print("==============================")
-    print("       EYE TRACKING TEST")
+    print("       GAZE TEST")
     print("==============================")
     print()
-    print("Look at the camera.")
-    print("Eye landmarks should appear.")
+    print("Look LEFT")
+    print("Look CENTER")
+    print("Look RIGHT")
     print()
     print("Press ESC to exit.")
     print()
-
-    # ==========================================
-    # LOOP
-    # ==========================================
 
     while True:
 
         success, frame = cap.read()
 
         if not success:
-
-            print(
-                "ERROR: Could not read frame."
-            )
 
             break
 
@@ -65,16 +57,12 @@ def main():
         )
 
         # ======================================
-        # FACE DETECTION
+        # FACE
         # ======================================
 
         results = eye_tracker.find_face(
             frame
         )
-
-        # ======================================
-        # FACE FOUND
-        # ======================================
 
         if results.multi_face_landmarks:
 
@@ -82,33 +70,36 @@ def main():
                 results.multi_face_landmarks[0]
             )
 
-            # ----------------------------------
-            # Draw eye landmarks
-            # ----------------------------------
+            # ==================================
+            # DRAW LANDMARKS
+            # ==================================
 
             eye_tracker.draw_eye_landmarks(
                 frame,
                 face_landmarks
             )
 
-            # ----------------------------------
-            # Eye centers
-            # ----------------------------------
+            # ==================================
+            # GAZE
+            # ==================================
 
-            left_eye, right_eye = (
-                eye_tracker.get_eye_centers(
-                    frame,
-                    face_landmarks
-                )
+            (
+                direction,
+                gaze_ratio,
+                left_iris,
+                right_iris
+            ) = eye_tracker.get_gaze_direction(
+                frame,
+                face_landmarks
             )
 
-            # ----------------------------------
-            # Draw centers
-            # ----------------------------------
+            # ==================================
+            # DRAW IRIS
+            # ==================================
 
             cv2.circle(
                 frame,
-                left_eye,
+                left_iris,
                 6,
                 (0, 0, 255),
                 cv2.FILLED
@@ -116,23 +107,33 @@ def main():
 
             cv2.circle(
                 frame,
-                right_eye,
+                right_iris,
                 6,
                 (0, 0, 255),
                 cv2.FILLED
             )
 
-            # ----------------------------------
-            # Status
-            # ----------------------------------
+            # ==================================
+            # DISPLAY DIRECTION
+            # ==================================
 
             cv2.putText(
                 frame,
-                "EYES: DETECTED",
+                f"GAZE: {direction}",
                 (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
+                1,
                 (0, 255, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"Ratio: {gaze_ratio:.2f}",
+                (20, 90),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
                 2
             )
 
@@ -140,7 +141,7 @@ def main():
 
             cv2.putText(
                 frame,
-                "EYES: NOT DETECTED",
+                "FACE NOT DETECTED",
                 (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,
@@ -153,13 +154,9 @@ def main():
         # ======================================
 
         cv2.imshow(
-            "AI Virtual Mouse - Eye Test",
+            "AI Virtual Mouse - Gaze Test",
             frame
         )
-
-        # ======================================
-        # ESC
-        # ======================================
 
         if (
             cv2.waitKey(1)
@@ -168,10 +165,6 @@ def main():
         ):
 
             break
-
-    # ==========================================
-    # CLEANUP
-    # ==========================================
 
     cap.release()
 
